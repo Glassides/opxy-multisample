@@ -5,7 +5,7 @@ import { VERSION } from './version.js';
 import { $, $$, el, formatBytes, formatSeconds, drawWaveform, download } from './ui.js';
 import { setMiddleCOctave, midiToName, nameToMidi, noteFromFilename, sanitiseName } from './notes.js';
 import { decodeFile, toMono, resample, encodeWav } from './audio.js';
-import { processNote, nearestZeroCrossing, retune } from './process.js';
+import { processNote, nearestZeroCrossing, retune, bakeLoopCrossfade, slice as sliceChannels, fadeOut as fadeOutChannels } from './process.js';
 import { LoopEditor } from './loopeditor.js';
 import { saveSession, loadSession, clearSession } from './session.js';
 import { detectPitch } from './pitch.js';
@@ -29,7 +29,7 @@ const state = {
 const opts = {
   trim: true, thresholdDb: -48,
   normalise: true, normaliseTo: -1,
-  loop: true, crossfade: 0.1, onRelease: false, cutAtLoopEnd: false,
+  loop: true, crossfade: 0.1, bakeCrossfade: true, onRelease: false, cutAtLoopEnd: false,
   fade: false, fadeOutMs: 200,
   winFrom: 0.25, winTo: 0.9,
   rate: 44100, mono: false,
@@ -80,6 +80,7 @@ bindRange('#opt-norm-to', 'normaliseTo', (v) => `${v} dB`);
 bindCheck('#opt-loop', 'loop');
 bindRange('#opt-xf', 'crossfade', (v) => `${v} %`, { scale: 0.01 });
 bindCheck('#opt-onrelease', 'onRelease', false);
+bindCheck('#opt-bake', 'bakeCrossfade');
 bindCheck('#opt-cut', 'cutAtLoopEnd');
 bindCheck('#opt-fade', 'fade');
 bindRange('#opt-fade-ms', 'fadeOutMs', (v) => `${v} ms`);
@@ -291,28 +292,41 @@ function processZone(zone) {
   const loopSearch = h
     ? { fromFrame: h.onsetFrame + Math.round(h.holdFrames * opts.winFrom), toFrame: h.onsetFrame + Math.round(h.holdFrames * opts.winTo) }
     : { fromFrac: opts.winFrom, toFrac: opts.winTo };
-  zone.processed = processNote(raw, {
+  const p = processNote(raw, {
     trim: opts.trim,
     thresholdDb: opts.thresholdDb,
     latencyFrames: h ? h.latencyFrames : 0,
     doNormalise: opts.normalise,
     normaliseTo: opts.normaliseTo,
-    loopEnabled: opts.loop,
+    loopEnabled: opts.loop && !zone.loopOverride,   // a hand-set loop skips the search
     loopSearch,
-    cutAtLoopEnd: opts.cutAtLoopEnd && zone.loopEnabled,
-    fadeOutMs: zone.fadeMs !== null ? zone.fadeMs : opts.fade ? opts.fadeOutMs : 0,
+    cutAtLoopEnd: false,
+    fadeOutMs: 0,
     maxSeconds: MAX_SECONDS,
   });
-  const n = zone.processed.channels[0].length;
-  if (zone.loopOverride) {
-    zone.processed.loop = {
-      start: Math.min(n - 2, zone.loopOverride.start),
-      end: Math.min(n - 1, zone.loopOverride.end),
-    };
+  const sr = p.sampleRate;
+  let ch = p.channels;
+  let n = ch[0].length;
+  let loop = p.loop;
+  if (zone.loopOverride && opts.loop) {
+    loop = { start: Math.min(n - 2, zone.loopOverride.start), end: Math.min(n - 1, zone.loopOverride.end) };
   }
+  const looping = !!loop && zone.loopEnabled && opts.loop;
+  if (looping && opts.cutAtLoopEnd) {
+    ch = sliceChannels(ch, 0, Math.min(n, loop.end + Math.round(0.01 * sr)));
+    n = ch[0].length;
+  }
+  const fadeMs = zone.fadeMs !== null ? zone.fadeMs : opts.fade ? opts.fadeOutMs : 0;
+  if (fadeMs > 0 && !(looping && opts.cutAtLoopEnd)) ch = fadeOutChannels(ch, sr, fadeMs);
+  // Baked crossfade: render it into the audio so the device plays exactly
+  // what the preview plays (the exported loop.crossfade is then 0).
+  if (looping && opts.bakeCrossfade && opts.crossfade > 0) {
+    ch = bakeLoopCrossfade(ch, loop, Math.round((loop.end - loop.start) * opts.crossfade));
+  }
+  zone.processed = { channels: ch, sampleRate: sr, trimmedFrom: p.trimmedFrom, loop, peakDb: p.peakDb };
   // Search window in processed-frame terms, for the editor to draw and drag.
   if (h) {
-    const onset = Math.max(0, h.onsetFrame - zone.processed.trimmedFrom);
+    const onset = Math.max(0, h.onsetFrame - p.trimmedFrom);
     zone.window = { start: Math.min(n - 1, onset + Math.round(h.holdFrames * opts.winFrom)), end: Math.min(n, onset + Math.round(h.holdFrames * opts.winTo)) };
   } else {
     zone.window = { start: Math.floor(n * opts.winFrom), end: Math.floor(n * opts.winTo) };
@@ -443,8 +457,7 @@ function selectedZone() { return state.zones.find((z) => z.id === state.selected
 
 function setLoop(z, start, end) {
   z.loopOverride = { start, end };
-  z.processed.loop = { start, end, score: null };
-  z._buffer = null;
+  processZone(z);
   markDirty();
 }
 
@@ -741,7 +754,7 @@ $('#export').addEventListener('click', async () => {
       const frames = ch[0].length;
       const ratio = opts.rate / p.sampleRate;
       const loop = z.loopEnabled && p.loop
-        ? { start: Math.min(frames - 2, Math.round(p.loop.start * ratio)), end: Math.min(frames - 1, Math.round(p.loop.end * ratio)), enabled: true, onRelease: opts.onRelease, crossfade: opts.crossfade }
+        ? { start: Math.min(frames - 2, Math.round(p.loop.start * ratio)), end: Math.min(frames - 1, Math.round(p.loop.end * ratio)), enabled: true, onRelease: opts.onRelease, crossfade: opts.bakeCrossfade ? 0 : opts.crossfade }
         : null;
       let filename = `${name}-${midiToName(z.keycenter)}.wav`;
       let k = 2;

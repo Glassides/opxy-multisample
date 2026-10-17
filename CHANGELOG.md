@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.1
+
+- Loop crossfades are now rendered into the audio ("bake crossfade into audio", on by default) and
+  the exported `loop.crossfade` is 0, so the device plays exactly what the browser preview plays.
+  Turn it off to use the device's own crossfade instead.
+- The loop finder prefers longer loops (minimum 150 ms) — short loops on bright, static
+  waveforms produced an audible flutter at the loop rate.
+- Hand-moved loop points re-run the processing so the baked crossfade follows them.
+
 ## 0.4.0 — stage 4: design pass
 
 - Rebuilt the look in the Teenage Engineering spirit: monochrome, lowercase, ruled sections numbered

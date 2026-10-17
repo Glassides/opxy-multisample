@@ -114,7 +114,7 @@ function risingZeroCrossings(mono, from, to, maxCount) {
 export function findLoop(channels, sampleRate, {
   searchStart = 0,
   searchEnd = channels[0].length,
-  minLengthMs = 50,
+  minLengthMs = 150,
   compareMs = 30,
   maxCandidates = 96,
 } = {}) {
@@ -146,7 +146,7 @@ export function findLoop(channels, sampleRate, {
       // Normalised mismatch, then reward length (longer loops hide
       // periodicity errors better and sound less static).
       const mismatch = err / energy;
-      const score = mismatch / Math.pow(len / span, 0.35);
+      const score = mismatch / Math.pow(len / span, 0.8);
       if (!best || score < best.score) best = { start: s, end: e, score, mismatch };
     }
   }
@@ -244,6 +244,28 @@ export function retune(channels, cents) {
       const t = pos - j;
       const p0 = ch[Math.max(0, j - 1)], p1 = ch[j], p2 = ch[Math.min(n - 1, j + 1)], p3 = ch[Math.min(n - 1, j + 2)];
       out[i] = 0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+    }
+    return out;
+  });
+}
+
+// Render a loop crossfade into the audio: the last `fadeFrames` of the loop
+// are blended (equal power) with the audio immediately before loop.start, so
+// the jump from loop.end back to loop.start is continuous. This is what
+// sample editors do, and it means the preview and the device play the same
+// thing with the device's own crossfade set to zero.
+export function bakeLoopCrossfade(channels, loop, fadeFrames) {
+  const len = loop.end - loop.start;
+  const fade = Math.min(fadeFrames, loop.start, Math.floor(len / 2));
+  if (fade < 2) return channels;
+  return channels.map((ch) => {
+    const out = ch.slice();
+    for (let i = 0; i < fade; i++) {
+      const t = (i / fade) * (Math.PI / 2);
+      const a = Math.cos(t), b = Math.sin(t);
+      const dst = loop.end - fade + i;      // tail of the loop
+      const src = loop.start - fade + i;    // audio leading into the loop start
+      out[dst] = ch[dst] * a + ch[src] * b;
     }
     return out;
   });
