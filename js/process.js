@@ -250,10 +250,10 @@ export function retune(channels, cents) {
 }
 
 // Render a loop crossfade into the audio: the last `fadeFrames` of the loop
-// are blended (equal power) with the audio immediately before loop.start, so
-// the jump from loop.end back to loop.start is continuous. This is what
-// sample editors do, and it means the preview and the device play the same
-// thing with the device's own crossfade set to zero.
+// are blended with the audio immediately before loop.start, so the jump from
+// loop.end back to loop.start is continuous. The blend is equal-GAIN (linear,
+// a + b = 1): the two sides of a good loop are nearly identical, and an
+// equal-power curve would sum correlated audio to +3 dB mid-fade.
 export function bakeLoopCrossfade(channels, loop, fadeFrames) {
   const len = loop.end - loop.start;
   const fade = Math.min(fadeFrames, loop.start, Math.floor(len / 2));
@@ -261,8 +261,7 @@ export function bakeLoopCrossfade(channels, loop, fadeFrames) {
   return channels.map((ch) => {
     const out = ch.slice();
     for (let i = 0; i < fade; i++) {
-      const t = (i / fade) * (Math.PI / 2);
-      const a = Math.cos(t), b = Math.sin(t);
+      const b = i / fade, a = 1 - b;
       const dst = loop.end - fade + i;      // tail of the loop
       const src = loop.start - fade + i;    // audio leading into the loop start
       out[dst] = ch[dst] * a + ch[src] * b;

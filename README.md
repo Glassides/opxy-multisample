@@ -69,8 +69,8 @@ python3 -m http.server 8000
 - Drag the orange handles to move the loop points. They snap to rising zero crossings; hold **⌥**
   to move freely. The splice view underneath shows the audio just before the loop end butted
   against the audio just after the loop start — a smooth line means a clean loop.
-- The crossfade is baked into the audio by default, so the preview and the device sound the same;
-  untick **bake crossfade into audio** to let the device do it instead.
+- By default the device applies the loop crossfade itself. Tick **bake crossfade into audio** to
+  render it into the WAV instead, so the browser preview and the device play identical audio.
 - The dashed lines are the **loop search window**, where the automatic finder looks. Drag them to
   change the window for every zone (for auto-sampled zones it is measured against the held part of
   the note). **Apply to all** copies the selected zone's loop position to every other zone,

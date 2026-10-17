@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.2
+
+- Baked crossfade now uses an equal-gain (linear) curve. The equal-power curve in 0.4.1 summed the
+  two near-identical sides of a loop to +3 dB mid-fade — audible swells at every loop point and
+  clipping on hot zones.
+- "bake crossfade into audio" is off by default again; the device's own crossfade is used unless
+  you turn baking on.
+
 ## 0.4.1
 
 - Loop crossfades are now rendered into the audio ("bake crossfade into audio", on by default) and

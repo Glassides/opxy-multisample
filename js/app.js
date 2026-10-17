@@ -29,7 +29,7 @@ const state = {
 const opts = {
   trim: true, thresholdDb: -48,
   normalise: true, normaliseTo: -1,
-  loop: true, crossfade: 0.1, bakeCrossfade: true, onRelease: false, cutAtLoopEnd: false,
+  loop: true, crossfade: 0.1, bakeCrossfade: false, onRelease: false, cutAtLoopEnd: false,
   fade: false, fadeOutMs: 200,
   winFrom: 0.25, winTo: 0.9,
   rate: 44100, mono: false,
