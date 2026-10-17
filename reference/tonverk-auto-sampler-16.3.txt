@@ -1,0 +1,64 @@
+16.3 THE AUTO SAMPLER
+You can also use the Auto Sampler functionality to perform sampling and create instruments. The Auto 
+Sampler helps you sample from other MIDI-equipped devices, such as synthesizers, by setting up a sample 
+session where you can define the note range, the number of notes within the range, velocity layers, note 
+duration, and release time.
+
+16.3.1 SAMPLING AUDIO USING THE AUTO SAMPLER
+1. Connect a MIDI cable from Tonverk’s MIDI Out to the MIDI input of the device you want to sample 
+
+from.
+2. Connect audio cables from the device you want to sample to Tonverk’s IN A/B inputs, or connect 
+
+an USB C cable from the sample source to one of Tonverk’s USB ports.
+3. On the external device, select the sound you want to sample.
+4. On Tonverk, press [SAMPLING] to enter the SAMPLING SELECT screen, and then use [UP]/
+
+[DOWN] to select AUTO SAMPLER, and then press [YES]. If you have previously in the session 
+used the Recorder, press [LEFT] to enter the SAMPLING SELECT screen.
+
+5. Select the sampling source (SRC) and then select the MIDI channel to which the external device is 
+listening (MIDI CHAN).
+
+
+
+16. SAMPLING
+
+74
+
+6. Press [YES] to play a test note. The Autosampler will measure the latency and correct for it. It will 
+also measure the release time of the sound you want to sample and set a release time that ac-
+counts for the full release of the sound. Press [NO] if you want to cancel the timing test.
+
+7. Use LTNCY to manually adjust the latency if you want to adjust the latency compensation set by 
+the test note in step 6.
+
+8. Use REL to manually set a release time if you want to adjust the release time set by the test note in 
+step 6.
+
+9. Press [RIGHT] to navigate to the next setting page and then set the following parameters:
+
+START, END sets the note range you want to sample.
+
+SAMPLE EVERY sets the interval between the actual notes to be sampled within the selected 
+note range. For example, if the note range is one octave and STEP is set to 1, every semitone 
+within the range is sampled. With STEP set to 3, every third semitone within the range will be 
+sampled. The first note sampled is always the lowest note selected by the START parameter.
+
+VEL LAYERS sets how many separate velocities each note are sampled with.
+
+10. Press [RIGHT] and then use LENGTH to set the time for which each sampled note should be held.
+11. Press [YES] to name for the sample and initiate the sampling process.. You can edit the suggested 
+
+name for the multi-sample. For more information, please see “6.7 THE NAMING SCREEN” on page 
+23. Press [YES] again to start sampling.
+
+Press [NO] to exit the Auto Sampler.
+
+When the auto-sampling process is complete, the instrument/sample is saved to the folder USER/
+MULTI-SAMPLED INSTRUMENTS on the SD card. The auto sampling process generates a number of 
+files: one instrument (.elmulti) for use in the Multi Player machine and one single sample (.wav) containing 
+all the sampled notes, one after another, for use in the Single player machine.
+
+When sampling with multiple velocity layers, set the VELOCITY TO VOL parameter to  
+LOG or LIN for best results. For more information, please see “11.4.1 VELOCITY TO VOL” 
